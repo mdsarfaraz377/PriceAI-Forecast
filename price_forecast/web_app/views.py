@@ -10,59 +10,35 @@ from django.shortcuts import render
 from django.conf import settings
 import pandas as pd
 
+from django.http import JsonResponse
+
 def index(request):
-    forecast_plot = None
-    error_message = None
-    forecast_data = []
-
-    if request.method == 'POST':
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax'):
         try:
-            months = int(request.POST.get('months', 12))
-            
-            # Load model
+            months = int(request.GET.get('months', 12))
             model_path = os.path.join(settings.BASE_DIR.parent, 'sarima_model.pkl')
+            
             if not os.path.exists(model_path):
-                error_message = "Model file not found. Please train the model first."
-            else:
-                model_results = joblib.load(model_path)
-                
-                # Forecast
-                forecast = model_results.get_forecast(steps=months)
-                predicted_mean = forecast.predicted_mean
-                conf_int = forecast.conf_int()
-                
-                # Create plot
-                plt.figure(figsize=(10, 5))
-                plt.plot(predicted_mean.index, predicted_mean.values, label='Forecast', color='#4F46E5')
-                plt.fill_between(predicted_mean.index, 
-                                 conf_int.iloc[:, 0], 
-                                 conf_int.iloc[:, 1], color='#4F46E5', alpha=0.1)
-                plt.title(f'Price Forecast for next {months} Months')
-                plt.xlabel('Date')
-                plt.ylabel('Price')
-                plt.grid(True, alpha=0.3)
-                plt.legend()
-                
-                # Save to buffer
-                buf = io.BytesIO()
-                plt.savefig(buf, format='png', bbox_inches='tight')
-                buf.seek(0)
-                string = base64.b64encode(buf.read())
-                forecast_plot =  string.decode('utf-8')
-                plt.close()
-                
-                # Prepare data for table
-                for date, price in zip(predicted_mean.index, predicted_mean.values):
-                    forecast_data.append({
-                        'date': date.strftime('%Y-%m'),
-                        'price': round(price, 2)
-                    })
-                    
+                return JsonResponse({'error': 'Model file not found'}, status=404)
+            
+            model_results = joblib.load(model_path)
+            forecast = model_results.get_forecast(steps=months)
+            predicted_mean = forecast.predicted_mean
+            conf_int = forecast.conf_int()
+            
+            dates = [d.strftime('%Y-%m') for d in predicted_mean.index]
+            prices = [round(p, 2) for p in predicted_mean.values]
+            lower_ci = [round(p, 2) for p in conf_int.iloc[:, 0]]
+            upper_ci = [round(p, 2) for p in conf_int.iloc[:, 1]]
+            
+            return JsonResponse({
+                'dates': dates,
+                'prices': prices,
+                'lower_ci': lower_ci,
+                'upper_ci': upper_ci
+            })
         except Exception as e:
-            error_message = f"Error: {str(e)}"
+            return JsonResponse({'error': str(e)}, status=400)
 
-    return render(request, 'web_app/index.html', {
-        'forecast_plot': forecast_plot,
-        'forecast_data': forecast_data,
-        'error_message': error_message
-    })
+    # Standard page load
+    return render(request, 'web_app/index.html')

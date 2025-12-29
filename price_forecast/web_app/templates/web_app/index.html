@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Price AI - Future Forecasting</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
@@ -18,7 +19,7 @@
         .glass-panel {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(96, 76, 128, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .gradient-text {
@@ -30,6 +31,22 @@
 
         .input-glow:focus {
             box-shadow: 0 0 15px rgba(129, 140, 248, 0.3);
+        }
+
+        .animate-pulse-fast {
+            animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .5;
+            }
         }
     </style>
 </head>
@@ -43,76 +60,244 @@
             <h1 class="text-5xl font-extrabold tracking-tight mb-2">
                 <span class="gradient-text">Price AI</span> Forecast
             </h1>
-            <p class="text-slate-400 text-lg">Advanced SARIMA-based monthly price prediction engine.</p>
+            <p class="text-slate-400 text-lg">Real-time Advanced SARIMA-based monthly price prediction engine.</p>
         </div>
 
         <!-- Input Section -->
         <div class="glass-panel rounded-2xl p-8 shadow-2xl transition-all duration-300 hover:shadow-indigo-500/10">
-            <form method="POST" class="flex flex-col sm:flex-row gap-4 items-end">
-                {% csrf_token %}
+            <div class="flex flex-col sm:flex-row gap-6 items-center">
                 <div class="flex-grow w-full">
-                    <label for="months" class="block text-sm font-medium text-slate-300 mb-2">Forecast Horizon
-                        (Months)</label>
-                    <input type="number" name="months" id="months" value="12" min="1" max="60"
-                        class="block w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 input-glow transition-all">
+                    <label for="months" class="block text-sm font-medium text-slate-300 mb-2">Forecast Horizon (Months):
+                        <span id="month-label" class="text-indigo-400 font-bold">12</span></label>
+                    <input type="range" id="months" min="1" max="60" value="12"
+                        class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                    <div class="flex justify-between text-xs text-slate-500 mt-2">
+                        <span>1 Month</span>
+                        <span>60 Months</span>
+                    </div>
                 </div>
-                <button type="submit"
-                    class="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-xl hover:from-indigo-500 hover:to-violet-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transform transition-all active:scale-95 shadow-lg shadow-indigo-500/25">
-                    Generate Forecast
-                </button>
-            </form>
-
-            {% if error_message %}
-            <div class="mt-4 p-4 bg-red-900/50 border border-red-500/50 rounded-xl text-red-200">
-                {{ error_message }}
+                <div id="loading" class="hidden">
+                    <div class="flex items-center space-x-2 text-indigo-400">
+                        <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
+                        <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <span class="text-sm font-medium">Analyzing...</span>
+                    </div>
+                </div>
             </div>
-            {% endif %}
+
+            <div id="error-box" class="hidden mt-4 p-4 bg-red-900/50 border border-red-500/50 rounded-xl text-red-200">
+            </div>
         </div>
 
-        {% if forecast_plot %}
         <!-- Results Section -->
-        <div class="glass-panel rounded-2xl p-8 shadow-2xl animate-fade-in-up">
-            <h2 class="text-2xl font-bold mb-6 text-white border-b border-slate-700 pb-2">Forecast Visualization</h2>
-            <div class="rounded-xl overflow-hidden shadow-lg bg-white/5 p-2">
-                <img src="data:image/png;base64,{{ forecast_plot }}" alt="Forecast Plot"
-                    class="w-full h-auto rounded-lg">
+        <div id="results-section" class="glass-panel rounded-2xl p-8 shadow-2xl space-y-8">
+            <div>
+                <h2 class="text-2xl font-bold mb-6 text-white border-b border-slate-700 pb-2 flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                    </svg>
+                    Forecast Visualization
+                </h2>
+                <div class="rounded-xl overflow-hidden bg-slate-900/50 p-4 border border-slate-700">
+                    <canvas id="forecastChart" height="150"></canvas>
+                </div>
             </div>
 
-            <div class="mt-8">
-                <h2 class="text-2xl font-bold mb-4 text-white">Data Points</h2>
-                <div class="overflow-x-auto rounded-xl border border-slate-700">
-                    <table class="min-w-full divide-y divide-slate-700">
-                        <thead class="bg-slate-800">
-                            <tr>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Date</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                                    Predicted Price</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-slate-800/50 divide-y divide-slate-700">
-                            {% for row in forecast_data %}
-                            <tr class="hover:bg-slate-700/50 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{{ row.date }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-emerald-400 font-mono font-bold">{{
-                                    row.price }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            <div>
+                <h2 class="text-2xl font-bold mb-4 text-white flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                        </path>
+                    </svg>
+                    Predicted Data Table
+                </h2>
+                <div class="overflow-hidden rounded-xl border border-slate-700">
+                    <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                        <table class="min-w-full divide-y divide-slate-700">
+                            <thead class="bg-slate-800 sticky top-0">
+                                <tr>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                        Date</th>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                        Predicted Price</th>
+                                </tr>
+                            </thead>
+                            <tbody id="data-body" class="bg-slate-800/50 divide-y divide-slate-700">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-        {% endif %}
 
         <!-- Footer -->
         <div class="text-center text-slate-500 text-sm mt-8">
-            <p>&copy; 2025 Price AI Analysis. Powered by Django & SARIMA.</p>
+            <p>&copy; 2025 Price AI Analysis. Powered by Django, SARIMA & Chart.js.</p>
         </div>
     </div>
 
+    <script>
+        let chart = null;
+        const monthInput = document.getElementById('months');
+        const monthLabel = document.getElementById('month-label');
+        const dataBody = document.getElementById('data-body');
+        const loading = document.getElementById('loading');
+        const errorBox = document.getElementById('error-box');
+
+        function initChart(labels, data, lower, upper) {
+            const ctx = document.getElementById('forecastChart').getContext('2d');
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Predicted Price',
+                            data: data,
+                            borderColor: '#818cf8',
+                            backgroundColor: 'rgba(129, 140, 248, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#818cf8'
+                        },
+                        {
+                            label: 'Confidence Interval (Bound)',
+                            data: upper,
+                            borderColor: 'transparent',
+                            backgroundColor: 'rgba(129, 140, 248, 0.05)',
+                            fill: false,
+                            pointRadius: 0,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Lower Bound',
+                            data: lower,
+                            borderColor: 'transparent',
+                            backgroundColor: 'rgba(129, 140, 248, 0.05)',
+                            fill: '-1', // Fill to dataset index 1
+                            pointRadius: 0,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: '#1e293b',
+                            titleColor: '#818cf8',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#334155',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid: {
+                                color: 'rgba(51, 65, 85, 0.5)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function updateForecast() {
+            const months = monthInput.value;
+            monthLabel.textContent = months;
+
+            loading.classList.remove('hidden');
+            errorBox.classList.add('hidden');
+
+            try {
+                const response = await fetch(`/?months=${months}&ajax=1`);
+                const result = await response.json();
+
+                if (response.ok) {
+                    initChart(result.dates, result.prices, result.lower_ci, result.upper_ci);
+
+                    // Update table
+                    dataBody.innerHTML = '';
+                    result.dates.forEach((date, i) => {
+                        const row = `
+                            <tr class="hover:bg-slate-700/50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">${date}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-emerald-400 font-mono font-bold">${result.prices[i]}</td>
+                            </tr>
+                        `;
+                        dataBody.insertAdjacentHTML('beforeend', row);
+                    });
+                } else {
+                    errorBox.textContent = result.error || 'An error occurred';
+                    errorBox.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorBox.textContent = 'Failed to connect to server';
+                errorBox.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        // Debounce helper
+        let timeout = null;
+        monthInput.addEventListener('input', () => {
+            monthLabel.textContent = monthInput.value;
+            clearTimeout(timeout);
+            timeout = setTimeout(updateForecast, 300);
+        });
+
+        // Initial Load
+        window.addEventListener('DOMContentLoaded', updateForecast);
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
 </body>
 
 </html>
