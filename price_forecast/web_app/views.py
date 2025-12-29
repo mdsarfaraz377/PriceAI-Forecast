@@ -26,14 +26,27 @@ def index(request):
             predicted_mean = forecast.predicted_mean
             conf_int = forecast.conf_int()
             
-            # Get Historical Data (last 24 months for context)
+            # Get Historical Data (last 36 months for better context)
             df = pd.read_csv(os.path.join(settings.BASE_DIR.parent, 'data.csv'))
             df['date'] = pd.to_datetime(df['date'])
+            df.sort_values('date', inplace=True)
             df.set_index('date', inplace=True)
-            hist_df = df.iloc[-24:] # Last 2 years
+            hist_df = df.iloc[-36:] 
             
             hist_dates = [d.strftime('%Y-%m') for d in hist_df.index]
             hist_prices = [round(p, 2) for p in hist_df['avg_monthly_price']]
+
+            # To connect the lines perfectly in the UI, 
+            # we prepend the last historical point to the forecast
+            last_date = hist_df.index[-1]
+            last_price = hist_df['avg_monthly_price'].iloc[-1]
+            
+            dates = [last_date.strftime('%Y-%m')] + [d.strftime('%Y-%m') for d in predicted_mean.index]
+            prices = [round(last_price, 2)] + [round(p, 2) for p in predicted_mean.values]
+            
+            # Confidence intervals for the seed point are zero width
+            lower_ci = [round(last_price, 2)] + [round(p, 2) for p in conf_int.iloc[:, 0]]
+            upper_ci = [round(last_price, 2)] + [round(p, 2) for p in conf_int.iloc[:, 1]]
 
             return JsonResponse({
                 'hist_dates': hist_dates,
