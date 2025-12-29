@@ -218,6 +218,7 @@
         generateBtn.onclick = updateUI;
 
         async function updateUI() {
+            console.log("updateUI triggered");
             const months = inputNum.value;
             loader.classList.remove('hidden');
             generateBtn.disabled = true;
@@ -227,18 +228,26 @@
             try {
                 console.log("Fetching forecast for months:", months);
                 const response = await fetch(`/?months=${months}&ajax=1`);
-                const data = await response.json();
 
-                if (!response.ok) throw new Error(data.error || "Server response not OK");
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("Server error response:", errorText);
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("Data received from server:", data);
+
+                if (data.error) throw new Error(data.error);
 
                 renderChart(data);
                 populateTable(data);
                 updateKeyMetrics(data);
 
-                console.log("UI Updated successfully");
+                console.log("UI components updated");
             } catch (err) {
-                console.error("UI Update Error:", err);
-                errorMsg.textContent = err.message;
+                console.error("UI Update Error Catch:", err);
+                errorMsg.textContent = "Data display error: " + err.message;
                 errorAlert.classList.remove('hidden');
             } finally {
                 loader.classList.add('hidden');
@@ -248,13 +257,21 @@
         }
 
         function renderChart(data) {
+            console.log("Rendering chart...");
             const ctx = document.getElementById('forecastChart').getContext('2d');
 
+            // Labels are distinct for history and forecast
+            // Historical starts at 0 to HistLen-1
+            // Forecast starts at HistLen-1 (overlap) to HistLen + ForecastLen - 1
             const allLabels = [...data.hist_dates, ...data.dates.slice(1)];
+
             const histData = data.hist_prices;
+            // Pad forecast with nulls so it starts at the last historical point
             const predData = new Array(histData.length - 1).fill(null).concat(data.prices);
             const lowerData = new Array(histData.length - 1).fill(null).concat(data.lower_ci);
             const upperData = new Array(histData.length - 1).fill(null).concat(data.upper_ci);
+
+            console.log("Chart Arrays - Labels:", allLabels.length, "Hist:", histData.length, "Pred:", predData.length);
 
             if (chart) chart.destroy();
 
