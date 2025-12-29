@@ -1,6 +1,6 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,22 +8,23 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
-        
+
         body {
             font-family: 'Outfit', sans-serif;
             background-color: #0f172a;
             color: #e2e8f0;
         }
-        
+
         .glass-panel {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(96, 76, 128, 0.1);
         }
-        
+
         .gradient-text {
             background: linear-gradient(to right, #818cf8, #c084fc);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -32,7 +33,9 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-900 to-slate-800">
+
+<body
+    class="min-h-screen flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-900 to-slate-800">
 
     <div class="max-w-4xl w-full space-y-8">
         <!-- Header -->
@@ -48,7 +51,8 @@
             <form method="POST" class="flex flex-col sm:flex-row gap-4 items-end">
                 {% csrf_token %}
                 <div class="flex-grow w-full">
-                    <label for="months" class="block text-sm font-medium text-slate-300 mb-2">Forecast Horizon (Months)</label>
+                    <label for="months" class="block text-sm font-medium text-slate-300 mb-2">Forecast Horizon
+                        (Months)</label>
                     <input type="number" name="months" id="months" value="12" min="1" max="60"
                         class="block w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 input-glow transition-all">
                 </div>
@@ -57,7 +61,7 @@
                     Generate Forecast
                 </button>
             </form>
-            
+
             {% if error_message %}
             <div class="mt-4 p-4 bg-red-900/50 border border-red-500/50 rounded-xl text-red-200">
                 {{ error_message }}
@@ -70,7 +74,8 @@
         <div class="glass-panel rounded-2xl p-8 shadow-2xl animate-fade-in-up">
             <h2 class="text-2xl font-bold mb-6 text-white border-b border-slate-700 pb-2">Forecast Visualization</h2>
             <div class="rounded-xl overflow-hidden shadow-lg bg-white/5 p-2">
-                <img src="data:image/png;base64,{{ forecast_plot }}" alt="Forecast Plot" class="w-full h-auto rounded-lg">
+                <img src="data:image/png;base64,{{ forecast_plot }}" alt="Forecast Plot"
+                    class="w-full h-auto rounded-lg">
             </div>
 
             <div class="mt-8">
@@ -79,15 +84,20 @@
                     <table class="min-w-full divide-y divide-slate-700">
                         <thead class="bg-slate-800">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Date</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Predicted Price</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                    Date</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
+                                    Predicted Price</th>
                             </tr>
                         </thead>
                         <tbody class="bg-slate-800/50 divide-y divide-slate-700">
                             {% for row in forecast_data %}
                             <tr class="hover:bg-slate-700/50 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{{ row.date }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-emerald-400 font-mono font-bold">{{ row.price }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-emerald-400 font-mono font-bold">{{
+                                    row.price }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -104,4 +114,5 @@
     </div>
 
 </body>
+
 </html>
