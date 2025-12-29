@@ -26,12 +26,18 @@ def index(request):
             predicted_mean = forecast.predicted_mean
             conf_int = forecast.conf_int()
             
-            dates = [d.strftime('%Y-%m') for d in predicted_mean.index]
-            prices = [round(p, 2) for p in predicted_mean.values]
-            lower_ci = [round(p, 2) for p in conf_int.iloc[:, 0]]
-            upper_ci = [round(p, 2) for p in conf_int.iloc[:, 1]]
+            # Get Historical Data (last 24 months for context)
+            df = pd.read_csv(os.path.join(settings.BASE_DIR.parent, 'data.csv'))
+            df['date'] = pd.to_datetime(df['date'])
+            df.set_index('date', inplace=True)
+            hist_df = df.iloc[-24:] # Last 2 years
             
+            hist_dates = [d.strftime('%Y-%m') for d in hist_df.index]
+            hist_prices = [round(p, 2) for p in hist_df['avg_monthly_price']]
+
             return JsonResponse({
+                'hist_dates': hist_dates,
+                'hist_prices': hist_prices,
                 'dates': dates,
                 'prices': prices,
                 'lower_ci': lower_ci,
