@@ -16,8 +16,9 @@ def index(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax'):
         try:
             months = int(request.GET.get('months', 12))
-            model_path = os.path.join(settings.BASE_DIR.parent, 'sarima_model.pkl')
-            data_path = os.path.join(settings.BASE_DIR.parent, 'data.csv')
+            # Use absolute paths relative to BASE_DIR which works on Vercel
+            model_path = os.path.join(settings.BASE_DIR, '..', 'sarima_model.pkl')
+            data_path = os.path.join(settings.BASE_DIR, '..', 'data.csv')
             
             print(f"DEBUG: Loading model from {model_path}")
             if not os.path.exists(model_path):
