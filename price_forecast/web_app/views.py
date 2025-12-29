@@ -12,7 +12,23 @@ def index(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax'):
         try:
             months = int(request.GET.get('months', 12))
-            data_path = os.path.join(settings.BASE_DIR, '..', 'data.csv')
+            
+            # Robust Path Finding for data.csv on Vercel
+            possible_paths = [
+                os.path.join(settings.BASE_DIR, '..', 'data.csv'),
+                os.path.join(settings.BASE_DIR, 'data.csv'),
+                'data.csv'
+            ]
+            
+            data_path = None
+            for p in possible_paths:
+                if os.path.exists(p):
+                    data_path = p
+                    break
+            
+            if not data_path:
+                # Fallback to current dir if everything else fails
+                data_path = 'data.csv'
             
             # Load Data
             df = pd.read_csv(data_path)

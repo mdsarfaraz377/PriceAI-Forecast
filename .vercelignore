@@ -1,0 +1,12 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.git/
+.vscode/
+db.sqlite3
+.agent/
+.gemini/
+.env
+local_settings.py
