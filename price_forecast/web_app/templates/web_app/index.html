@@ -4,285 +4,351 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PriceAI | Enterprise Forecasting Dashboard</title>
+    <title>PriceAI | Next-Gen Forecasting</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
+        :root {
+            --brand-primary: #6366f1;
+            --brand-secondary: #8b5cf6;
+            --surface-bg: #fcfcfd;
+            --card-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+        }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--surface-bg);
+            color: #1e293b;
         }
 
-        .sidebar {
-            background-color: #ffffff;
-            border-right: 1px solid #e2e8f0;
+        .glass-sidebar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
         }
 
-        .main-content {
-            background-color: #f8fafc;
-        }
-
-        .card {
+        .premium-card {
             background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-radius: 24px;
+            border: 1px solid rgba(0, 0, 0, 0.03);
+            box-shadow: var(--card-shadow);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        .btn-primary {
-            background-color: #2563eb;
-            color: white;
-            transition: all 0.2s;
+        .premium-card:hover {
+            transform: translateY(-4px);
         }
 
-        .btn-primary:hover {
-            background-color: #1d4ed8;
-            transform: translateY(-1px);
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
         }
 
-        .btn-primary:active {
-            transform: translateY(0);
+        .btn-gradient {
+            background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+            transition: all 0.3s ease;
         }
 
-        canvas {
-            width: 100% !important;
-            height: 100% !important;
+        .btn-gradient:hover {
+            filter: brightness(1.1);
+            transform: scale(1.02);
+        }
+
+        .custom-range {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .custom-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--brand-primary);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .currency::before {
+            content: "₹";
+            margin-right: 2px;
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
         }
     </style>
 </head>
 
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col md:flex-row overflow-hidden">
 
-    <!-- Top Navigation -->
-    <nav class="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center sticky top-0 z-10">
-        <div class="flex items-center space-x-3">
-            <div class="bg-blue-600 p-2 rounded-lg">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- Mobile Header -->
+    <div class="md:hidden bg-white p-4 border-b flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                 </svg>
             </div>
-            <span class="text-xl font-bold text-slate-900 tracking-tight">PriceAI <span
-                    class="text-slate-400 font-normal">Predict</span></span>
+            <span class="font-bold text-lg">PriceAI</span>
         </div>
-        <div class="flex items-center space-x-4">
-            <span
-                class="flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-                <span class="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></span> SYSTEM ONLINE
-            </span>
-        </div>
-    </nav>
-
-    <div class="flex-grow flex">
-        <!-- Sidebar Controls -->
-        <aside class="sidebar w-80 p-8 hidden lg:block">
-            <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-6">Configuration</h2>
-
-            <div class="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Forecast Horizon</label>
-                    <input type="number" id="months-input" min="1" max="60" value="12"
-                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                </div>
-
-                <div>
-                    <input type="range" id="months-slider" min="1" max="60" value="12"
-                        class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-                    <div class="flex justify-between text-[10px] text-slate-400 mt-2">
-                        <span>1M</span>
-                        <span>(30M)</span>
-                        <span>60M</span>
-                    </div>
-                </div>
-
-                <button id="generate-btn"
-                    class="w-full btn-primary py-3 rounded-lg font-semibold shadow-sm flex justify-center items-center space-x-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
-                        </path>
-                    </svg>
-                    <span>Run Analysis</span>
-                </button>
-
-                <div id="loader" class="hidden flex items-center justify-center space-x-3 text-blue-600 py-4">
-                    <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
-                            fill="none"></circle>
-                        <path class="opacity-75" fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                        </path>
-                    </svg>
-                    <span class="text-sm font-medium">Refining values...</span>
-                </div>
-            </div>
-
-            <div class="mt-12 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Model Data</h4>
-                <p class="text-[11px] text-slate-600 leading-relaxed">
-                    Algorithm: SARIMA (Seasonal AR Integrated MA)<br>
-                    Dataset: Monthly historical prices<br>
-                    Confidence: 95% Expected Range
-                </p>
-            </div>
-        </aside>
-
-        <!-- Main Display -->
-        <main class="flex-grow p-8 space-y-8 overflow-y-auto">
-
-            <div id="error-alert" class="hidden bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl">
-                <strong>Error:</strong> <span id="error-msg">Failed to load model results.</span>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="card p-6">
-                    <p class="text-sm font-medium text-slate-500 mb-1">Current Price</p>
-                    <p id="current-price" class="text-3xl font-bold text-slate-900 font-mono">--</p>
-                </div>
-                <div class="card p-6">
-                    <p class="text-sm font-medium text-slate-500 mb-1">Forecast Peak</p>
-                    <p id="peak-price" class="text-3xl font-bold text-blue-600 font-mono">--</p>
-                </div>
-                <div class="card p-6 border-l-4 border-l-emerald-500">
-                    <p class="text-sm font-medium text-slate-500 mb-1">Projected Trend</p>
-                    <p id="trend-indicator" class="text-xl font-bold text-slate-900 italic">Calculating...</p>
-                </div>
-            </div>
-
-            <!-- Graph Section -->
-            <div class="card overflow-hidden">
-                <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center">
-                    <h3 class="text-lg font-bold text-slate-800">Forecast Visualization</h3>
-                    <div class="flex items-center space-x-6 text-xs font-semibold uppercase tracking-wider">
-                        <div class="flex items-center"><span class="w-3 h-3 bg-slate-200 rounded-full mr-2"></span>
-                            Historical</div>
-                        <div class="flex items-center"><span class="w-3 h-3 bg-blue-600 rounded-full mr-2"></span>
-                            Prediction</div>
-                        <div class="flex items-center"><span
-                                class="w-3 h-3 bg-blue-100 border border-blue-200 rounded-sm mr-2"></span> Variance
-                        </div>
-                    </div>
-                </div>
-                <div class="p-8 h-[450px]">
-                    <canvas id="forecastChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Table Section -->
-            <div class="card">
-                <div class="px-8 py-6 border-b border-slate-100 font-bold text-slate-800">Detailed Forecast Schedule
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead
-                            class="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-widest border-b border-slate-100">
-                            <tr>
-                                <th class="px-8 py-4">Timeline</th>
-                                <th class="px-8 py-4">Predicted Price</th>
-                                <th class="px-8 py-4">Lower Bound</th>
-                                <th class="px-8 py-4">Upper Bound</th>
-                            </tr>
-                        </thead>
-                        <tbody id="table-body" class="divide-y divide-slate-100">
-                            <!-- Rows -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
+        <button id="mobile-toggle" class="text-gray-500">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+            </svg>
+        </button>
     </div>
 
+    <!-- Sidebar -->
+    <aside id="sidebar-panel"
+        class="glass-sidebar w-full md:w-80 p-8 flex-shrink-0 flex flex-col h-screen fixed md:relative z-20 transition-transform duration-300 -translate-x-full md:translate-x-0">
+        <div class="hidden md:flex items-center space-x-3 mb-12">
+            <div
+                class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight">PriceAI</h1>
+                <p class="text-[10px] text-indigo-500 font-extrabold uppercase tracking-[0.2em]">Enterprise Core</p>
+            </div>
+        </div>
+
+        <div class="flex-grow space-y-10">
+            <section>
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">Prediction Engine</h2>
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">Forecast Duration</label>
+                        <div class="flex items-center space-x-4">
+                            <input type="number" id="months-input" min="1" max="60" value="12"
+                                class="w-20 px-3 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-center">
+                            <span class="text-sm text-gray-400 font-medium">Months</span>
+                        </div>
+                    </div>
+
+                    <input type="range" id="months-slider" min="1" max="60" value="12" class="custom-range">
+
+                    <button id="run-btn"
+                        class="w-full btn-gradient py-4 rounded-2xl text-white font-bold tracking-wide flex items-center justify-center space-x-2">
+                        <span>Process Forecast</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </button>
+                </div>
+            </section>
+
+            <section class="p-6 bg-indigo-50/50 rounded-3xl border border-indigo-100">
+                <h3 class="text-xs font-bold text-indigo-600 uppercase mb-3">Model Status</h3>
+                <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                    <span class="text-xs font-semibold text-gray-600">SARIMA Intelligence Active</span>
+                </div>
+            </section>
+        </div>
+
+        <div class="pt-8 border-t border-gray-100 text-[10px] text-gray-400 font-medium uppercase tracking-widest">
+            v2.4.0 Optimized for INR
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-grow h-screen overflow-y-auto p-4 md:p-10 space-y-8">
+
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="premium-card stat-card p-8">
+                <div
+                    class="w-12 h-12 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center mb-6 text-indigo-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                </div>
+                <p class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Market Price (Current)</p>
+                <h3 id="cur-price" class="text-3xl font-extrabold text-slate-900 tracking-tight">--</h3>
+            </div>
+
+            <div class="premium-card stat-card p-8">
+                <div
+                    class="w-12 h-12 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center mb-6 text-emerald-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+                <p class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Projected High</p>
+                <h3 id="high-price" class="text-3xl font-extrabold text-indigo-600 tracking-tight">--</h3>
+            </div>
+
+            <div class="premium-card bg-indigo-600 p-8 text-white shadow-indigo-600/20">
+                <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-6 text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                </div>
+                <p class="text-sm font-bold text-white/60 uppercase tracking-wider mb-2">Growth Analysis</p>
+                <h3 id="growth-tag" class="text-3xl font-extrabold tracking-tight italic">--</h3>
+            </div>
+        </div>
+
+        <!-- Visualization Canvas -->
+        <div class="premium-card p-8 md:p-10">
+            <div
+                class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 space-y-4 md:space-y-0">
+                <div>
+                    <h2 class="text-2xl font-bold tracking-tight text-slate-800">Dynamic Market Projection</h2>
+                    <p class="text-sm text-gray-400 font-medium">Visualizing data points across the historical and
+                        projected timeline.</p>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div
+                        class="flex items-center text-[10px] font-bold uppercase text-gray-400 tracking-widest leading-none">
+                        <span class="w-2 h-2 bg-gray-300 rounded-full mr-2"></span> Observed
+                    </div>
+                    <div
+                        class="flex items-center text-[10px] font-bold uppercase text-indigo-500 tracking-widest leading-none">
+                        <span class="w-2 h-2 bg-indigo-500 rounded-full mr-2"></span> AI Forecast
+                    </div>
+                </div>
+            </div>
+            <div class="h-[400px]">
+                <canvas id="marketChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Schedule Table -->
+        <div class="premium-card overflow-hidden">
+            <div class="p-8 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-slate-800 tracking-tight">Detailed Forecast Schedule</h3>
+                <span
+                    class="text-xs font-bold text-indigo-500 px-3 py-1 bg-white rounded-full border border-indigo-100 uppercase tracking-widest">INR
+                    Format</span>
+            </div>
+            <div class="max-h-[400px] overflow-y-auto custom-scroll">
+                <table class="w-full text-left">
+                    <thead class="sticky top-0 bg-white shadow-sm">
+                        <tr class="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                            <th class="px-10 py-5">Date Period</th>
+                            <th class="px-10 py-5 text-indigo-600">Mean Estimate</th>
+                            <th class="px-10 py-5">Confidence (Min)</th>
+                            <th class="px-10 py-5">Confidence (Max)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data-rows" class="divide-y divide-gray-50">
+                        <!-- Fetched rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
     <script>
-        let chart = null;
-        const inputNum = document.getElementById('months-input');
-        const slider = document.getElementById('months-slider');
-        const generateBtn = document.getElementById('generate-btn');
-        const loader = document.getElementById('loader');
-        const errorAlert = document.getElementById('error-alert');
-        const errorMsg = document.getElementById('error-msg');
+        let mainChart = null;
+        const inNum = document.getElementById('months-input');
+        const inSlide = document.getElementById('months-slider');
+        const runBtn = document.getElementById('run-btn');
+        const rows = document.getElementById('data-rows');
 
-        const currentPriceEl = document.getElementById('current-price');
-        const peakPriceEl = document.getElementById('peak-price');
-        const trendEl = document.getElementById('trend-indicator');
-        const tableBody = document.getElementById('table-body');
+        // Currency Formatter
+        const inr = new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0
+        });
 
-        // Initial Data Load
-        document.addEventListener('DOMContentLoaded', updateUI);
+        // Initialize UI
+        document.addEventListener('DOMContentLoaded', fetchForecast);
 
-        // Sync inputs
-        inputNum.oninput = () => slider.value = inputNum.value;
-        slider.oninput = () => inputNum.value = slider.value;
+        // UI Interactions
+        inNum.addEventListener('input', () => { inSlide.value = inNum.value; });
+        inSlide.addEventListener('input', () => { inNum.value = inSlide.value; });
+        runBtn.addEventListener('click', fetchForecast);
 
-        // Button click
-        generateBtn.onclick = updateUI;
-
-        async function updateUI() {
-            console.log("updateUI triggered");
-            const months = inputNum.value;
-            loader.classList.remove('hidden');
-            generateBtn.disabled = true;
-            generateBtn.classList.add('opacity-50');
-            errorAlert.classList.add('hidden');
+        async function fetchForecast() {
+            const m = inNum.value;
+            runBtn.disabled = true;
+            runBtn.innerHTML = `<span>Synthesizing...</span>`;
 
             try {
-                console.log("Fetching forecast for months:", months);
-                const response = await fetch(`/?months=${months}&ajax=1`);
+                const r = await fetch(`/?months=${m}&ajax=1`);
+                const d = await r.json();
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error("Server error response:", errorText);
-                    throw new Error(`Server error: ${response.status}`);
-                }
+                if (d.error) throw new Error(d.error);
 
-                const data = await response.json();
-                console.log("Data received from server:", data);
+                updateMetrics(d);
+                buildChart(d);
+                buildTable(d);
 
-                if (data.error) throw new Error(data.error);
-
-                renderChart(data);
-                populateTable(data);
-                updateKeyMetrics(data);
-
-                console.log("UI components updated");
-            } catch (err) {
-                console.error("UI Update Error Catch:", err);
-                errorMsg.textContent = "Data display error: " + err.message;
-                errorAlert.classList.remove('hidden');
+            } catch (e) {
+                console.error("Critical Engine Error:", e);
+                alert("Model Sync Error: " + e.message);
             } finally {
-                loader.classList.add('hidden');
-                generateBtn.disabled = false;
-                generateBtn.classList.remove('opacity-50');
+                runBtn.disabled = false;
+                runBtn.innerHTML = `<span>Process Forecast</span><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>`;
             }
         }
 
-        function renderChart(data) {
-            console.log("Rendering chart...");
-            const ctx = document.getElementById('forecastChart').getContext('2d');
+        function updateMetrics(d) {
+            const cur = d.hist_prices[d.hist_prices.length - 1];
+            const high = Math.max(...d.prices.slice(1));
 
-            // Labels are distinct for history and forecast
-            // Historical starts at 0 to HistLen-1
-            // Forecast starts at HistLen-1 (overlap) to HistLen + ForecastLen - 1
-            const allLabels = [...data.hist_dates, ...data.dates.slice(1)];
+            document.getElementById('cur-price').innerText = inr.format(cur);
+            document.getElementById('high-price').innerText = inr.format(high);
 
-            const histData = data.hist_prices;
-            // Pad forecast with nulls so it starts at the last historical point
-            const predData = new Array(histData.length - 1).fill(null).concat(data.prices);
-            const lowerData = new Array(histData.length - 1).fill(null).concat(data.lower_ci);
-            const upperData = new Array(histData.length - 1).fill(null).concat(data.upper_ci);
+            const start = d.prices[1];
+            const end = d.prices[d.prices.length - 1];
+            const change = ((end - cur) / cur * 100).toFixed(1);
 
-            console.log("Chart Arrays - Labels:", allLabels.length, "Hist:", histData.length, "Pred:", predData.length);
+            const growthTag = document.getElementById('growth-tag');
+            growthTag.innerText = (change >= 0 ? "+" : "") + change + "%";
+            growthTag.className = "text-3xl font-extrabold tracking-tight italic " + (change >= 0 ? "text-emerald-300" : "text-rose-300");
+        }
 
-            if (chart) chart.destroy();
+        function buildChart(d) {
+            const ctx = document.getElementById('marketChart').getContext('2d');
+            const labels = [...d.hist_dates, ...d.dates.slice(1)];
 
-            chart = new Chart(ctx, {
+            const pHist = d.hist_prices;
+            const pPred = new Array(pHist.length - 1).fill(null).concat(d.prices);
+            const pLow = new Array(pHist.length - 1).fill(null).concat(d.lower_ci);
+            const pUpp = new Array(pHist.length - 1).fill(null).concat(d.upper_ci);
+
+            if (mainChart) mainChart.destroy();
+
+            mainChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: allLabels,
+                    labels: labels,
                     datasets: [
                         {
                             label: 'Historical',
-                            data: histData,
+                            data: pHist,
                             borderColor: '#cbd5e1',
                             borderWidth: 2,
                             pointRadius: 0,
@@ -290,30 +356,33 @@
                             fill: false
                         },
                         {
-                            label: 'Prediction',
-                            data: predData,
-                            borderColor: '#2563eb',
-                            borderWidth: 3,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#2563eb',
-                            pointHoverRadius: 6,
+                            label: 'Forecast',
+                            data: pPred,
+                            borderColor: '#6366f1',
+                            borderWidth: 4,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#6366f1',
+                            pointBorderWidth: 2,
                             tension: 0.4,
-                            fill: false
+                            fill: false,
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(99, 102, 241, 0.4)'
                         },
                         {
-                            label: 'Variance Upper',
-                            data: upperData,
+                            label: 'Range',
+                            data: pUpp,
                             borderColor: 'transparent',
-                            backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                            backgroundColor: 'rgba(99, 102, 241, 0.04)',
                             pointRadius: 0,
                             fill: false,
                             tension: 0.4
                         },
                         {
-                            label: 'Variance Lower',
-                            data: lowerData,
+                            label: 'Variance',
+                            data: pLow,
                             borderColor: 'transparent',
-                            backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                            backgroundColor: 'rgba(99, 102, 241, 0.04)',
                             pointRadius: 0,
                             fill: '-1',
                             tension: 0.4
@@ -323,64 +392,36 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#1e293b',
-                            padding: 12,
-                            titleFont: { weight: 'bold' }
-                        }
-                    },
+                    plugins: { legend: { display: false }, tooltip: { cornerRadius: 10, padding: 15, titleFont: { size: 14, weight: 'bold' } } },
                     scales: {
-                        y: {
-                            grid: { color: '#f1f5f9' },
-                            ticks: { color: '#94a3b8', font: { size: 11 } }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#94a3b8', font: { size: 10 }, autoSkip: true, maxTicksLimit: 12 }
-                        }
+                        y: { grid: { borderDash: [5, 5], color: '#f1f5f9' }, ticks: { color: '#94a3b8', font: { size: 11 }, callback: v => '₹' + v } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 }, autoSkip: true, maxTicksLimit: 12 } }
                     }
                 }
             });
         }
 
-        function populateTable(data) {
-            tableBody.innerHTML = '';
-            // data.dates[0] is the seed point, we skip it for the table of future projections
-            data.dates.slice(1).forEach((date, i) => {
+        function buildTable(d) {
+            rows.innerHTML = '';
+            d.dates.slice(1).forEach((date, i) => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.className = "hover:bg-indigo-50/50 transition-colors group";
                 tr.innerHTML = `
-                    <td class="px-8 py-3 text-sm text-slate-600 font-medium">${date}</td>
-                    <td class="px-8 py-3 text-sm text-blue-700 font-bold font-mono">¥${data.prices[i + 1]}</td>
-                    <td class="px-8 py-3 text-sm text-slate-400 font-mono italic">${data.lower_ci[i + 1]}</td>
-                    <td class="px-8 py-3 text-sm text-slate-400 font-mono italic">${data.upper_ci[i + 1]}</td>
+                    <td class="px-10 py-5 text-sm font-semibold text-slate-500">${date}</td>
+                    <td class="px-10 py-5 text-sm font-bold text-indigo-600 font-mono italic">${inr.format(d.prices[i + 1])}</td>
+                    <td class="px-10 py-5 text-sm font-medium text-gray-400 font-mono">${inr.format(d.lower_ci[i + 1])}</td>
+                    <td class="px-10 py-5 text-sm font-medium text-gray-400 font-mono">${inr.format(d.upper_ci[i + 1])}</td>
                 `;
-                tableBody.appendChild(tr);
+                rows.appendChild(tr);
             });
         }
 
-        function updateKeyMetrics(data) {
-            const latestPrice = data.hist_prices[data.hist_prices.length - 1];
-            currentPriceEl.textContent = `¥${latestPrice}`;
-
-            const peak = Math.max(...data.prices.slice(1));
-            peakPriceEl.textContent = `¥${peak}`;
-
-            const startPred = data.prices[1];
-            const endPred = data.prices[data.prices.length - 1];
-            const diff = endPred - latestPrice;
-
-            if (diff > 0) {
-                trendEl.textContent = `Upward (+${((diff / latestPrice) * 100).toFixed(1)}%)`;
-                trendEl.className = "text-xl font-bold text-emerald-600 italic";
-            } else {
-                trendEl.textContent = `Downward (${((diff / latestPrice) * 100).toFixed(1)}%)`;
-                trendEl.className = "text-xl font-bold text-red-600 italic";
-            }
-        }
+        // Mobile Sidebar Toggle
+        const mobileToggle = document.getElementById('mobile-toggle');
+        const sidebar = document.getElementById('sidebar-panel');
+        mobileToggle.onclick = () => {
+            sidebar.classList.toggle('-translate-x-full');
+        };
     </script>
 </body>
 
