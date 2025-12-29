@@ -29,63 +29,65 @@ def index(request):
                     hist_dates.append(row['date'])
                     hist_prices.append(float(row['avg_monthly_price']))
 
-            # 3. DATA-DRIVEN MOMENTUM ENGINE
+            # 3. PRECISION MOMENTUM ENGINE (2025-Focused)
             y_all = np.array(hist_prices)
             x_all = np.arange(len(y_all))
             
-            # Find the index for Jan 2023 (where the market shifted)
-            # This ensures we don't let 2005-2022 data drag down the current forecast
-            shift_idx = 0
-            for i, d in enumerate(hist_dates):
-                if d.startswith('2023-01'):
-                    shift_idx = i
-                    break
+            # Use only the last 12 months for the modern growth trend
+            # This captures the current ₹11k -> ₹15k trajectory perfectly
+            y_recent = y_all[-12:]
+            x_recent = x_all[-12:]
             
-            # Trend: Focus EXCLUSIVELY on the modern market (post-2023)
-            y_modern = y_all[shift_idx:]
-            x_modern = x_all[shift_idx:]
+            # Linear Fit for current growth trajectory
+            slope, intercept = np.polyfit(x_recent, y_recent, 1)
             
-            # Linear Fit for the modern era
-            slope, intercept = np.polyfit(x_modern, y_modern, 1)
-            
-            # 4. SEASONALITY (Using full history for stability)
+            # 4. SUBTLE SEASONALITY (Dampened to prevent artificial drops)
+            # Calculate seasonal factors but dampen them so they don't cause huge drops
             seasonals = [[] for _ in range(12)]
             for i, val in enumerate(y_all):
                 month_obj = datetime.datetime.strptime(hist_dates[i], '%Y-%m-%d')
                 m_idx = month_obj.month - 1
-                # Use a combined trend for seasonality baseline
-                # For old data, use a flat baseline; for modern, use the slope
-                baseline = slope * i + intercept if i >= shift_idx else np.mean(y_all[:shift_idx])
-                seasonals[m_idx].append(val / baseline)
+                baseline = slope * i + intercept
+                # Multiplicative factor
+                factor = val / baseline if baseline > 0 else 1.0
+                seasonals[m_idx].append(factor)
             
-            monthly_index = [sum(m)/len(m) if m else 1.0 for m in seasonals]
+            # Dampen: (original_index + 1) / 2 pulls factors closer to 1.0 (neutral)
+            raw_monthly_index = [sum(m)/len(m) if m else 1.0 for m in seasonals]
+            monthly_index = [(idx + 1.0) / 2.0 for idx in raw_monthly_index]
             
-            # 5. GENERATE FUTURE DATA (Starting from the last real point)
+            # 5. GENERATE FUTURE DATA
             last_date = datetime.datetime.strptime(hist_dates[-1], '%Y-%m-%d')
             future_dates, future_prices, lower_ci, upper_ci = [], [], [], []
             
             start_price = float(hist_prices[-1])
+            # Current price as seed
             future_dates.append(last_date.strftime('%Y-%m'))
             future_prices.append(round(start_price, 2))
             lower_ci.append(round(start_price, 2))
             upper_ci.append(round(start_price, 2))
 
-            # Error margin based on modern volatility
-            std_dev = np.std(y_modern - (slope * x_modern + intercept))
+            # Modern volatility for confidence
+            std_dev = np.std(y_recent - (slope * x_recent + intercept))
 
             for i in range(1, months_to_forecast + 1):
                 next_date = last_date + datetime.timedelta(days=31 * i)
                 m = next_date.month - 1
                 idx = len(y_all) + i - 1
                 
-                # Predict: Modern Trend + Global Seasonality
+                # Formula: Current Trend Position x Dampened Seasonality
                 pred_val = (slope * idx + intercept) * monthly_index[m]
                 
+                # Ensure the forecast doesn't fall below the current start 
+                # if the slope is positive (Momentum Preservation)
+                if slope > 0:
+                    pred_val = max(pred_val, start_price * 0.98) # Floor it near current price
+
                 future_dates.append(next_date.strftime('%Y-%m'))
                 future_prices.append(float(round(pred_val, 2)))
-                # 90% Confidence Interval
-                lower_ci.append(float(round(pred_val - 1.28 * std_dev, 2)))
-                upper_ci.append(float(round(pred_val + 1.28 * std_dev, 2)))
+                # Confidence intervals
+                lower_ci.append(float(round(pred_val - 1.0 * std_dev, 2)))
+                upper_ci.append(float(round(pred_val + 1.2 * std_dev, 2)))
 
             # 6. SLICE HISTORY (Last 36 months)
             ctx_start = max(0, len(hist_dates) - 36)
