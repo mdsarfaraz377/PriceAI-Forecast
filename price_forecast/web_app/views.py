@@ -1,16 +1,10 @@
 
 import os
-import io
-import base64
 import joblib
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 from django.shortcuts import render
 from django.conf import settings
-import pandas as pd
-
 from django.http import JsonResponse
+import pandas as pd
 
 def index(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax'):
